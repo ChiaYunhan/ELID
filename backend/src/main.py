@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import asyncio
 import logging
 
-from .db.database import get_db, SessionLocal
+from .db.database import get_db, SessionLocal, init_db
 from .schema.device import DeviceCreate, DeviceUpdate, DeviceResponse
 from .schema.transaction import TransactionCreate, TransactionResponse
 from .services import device_service, transaction_service
@@ -31,10 +31,20 @@ async def lifespan(app: FastAPI):
     Lifespan context manager for FastAPI application.
     Handles startup and shutdown events.
     """
-    # Startup: Initialize and start workers for all active devices
+    # Startup: Initialize database and start workers for all active devices
+    logger.info("Application startup: Initializing database...")
+
+    # Initialize database tables
+    try:
+        init_db()
+        logger.info("Database tables initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+        raise
+
     db = SessionLocal()
     try:
-        logger.info("Application startup: Initializing device workers...")
+        logger.info("Starting device workers...")
 
         # Get all active devices from database
         active_devices = device_service.get_active_devices(db)
